@@ -9,9 +9,20 @@
 #include <util.h>
 #include <arch/model/smp.h>
 #include <stdint.h>
+#include <plat/machine/devices_gen.h>
+
+/*
+ * Currently all RISC-V 32-bit platforms supported have the mtime register
+ * mapped at the same offset of the base address of the CLINT.
+ */
+#define CLINT_MTIME_OFFSET 0xbff8
 
 static inline uint64_t riscv_read_time(void)
 {
+#ifdef CONFIG_RISCV_USE_CLINT_MTIME
+    uint64_t n = *(volatile uint64_t *)(CLINT_PPTR + CLINT_MTIME_OFFSET);
+    return n;
+#else
     word_t nH1, nL, nH2;
     asm volatile(
         "rdtimeh %0\n"
@@ -24,6 +35,7 @@ static inline uint64_t riscv_read_time(void)
         asm volatile("rdtime  %0\n" : "=r"(nL));
     }
     return (((uint64_t)nH2) << 32) | nL;
+#endif
 }
 
 
